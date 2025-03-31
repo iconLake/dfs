@@ -1,17 +1,22 @@
 {
   "name": "dfs",
   "version": "1.0.0",
-  "description": "",
+  "description": "Decentralized file system",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "pm2 reload ecosystem.config.cjs --env development && pm2 logs dfs",
+    "pro": "pm2 reload ecosystem.config.cjs --env production"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0",
+  "packageManager": "pnpm@9.15.4",
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "pm2": "^6.0.5"
   }
 }
