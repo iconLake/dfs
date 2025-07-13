@@ -7,6 +7,7 @@ export default {
     
     // 上传文件存储路径
     uploadPath: 'public/src',
+    srcBaseUrl: 'http://127.0.0.1:3000/src',
     
     // 服务器端口
     port: 3000,
@@ -22,5 +23,5 @@ export default {
             'http://localhost:3000',
             'http://127.0.0.1:3000'
         ]
-    }
+    },
 };

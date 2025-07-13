@@ -3,10 +3,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs-extra';
 import crypto from 'crypto';
-import phash from 'sharp-phash';
 import config from '../../config.js';
 import { authenticate } from '../middlewares/index.js';
-import { binaryStringToHex, getProjectRoot } from '../utils/index.js';
+import { getProjectRoot } from '../utils/index.js';
 
 const router = express.Router();
 
@@ -20,15 +19,6 @@ fs.ensureDirSync(config.uploadPath);
  */
 function calculateSHA256(fileBuffer) {
     return crypto.createHash('sha256').update(fileBuffer).digest('hex');
-}
-
-/**
- * 检查文件是否为图片
- * @param {string} mimetype - 文件的mimetype
- * @returns {boolean} - 是否为图片
- */
-function isImage(mimetype) {
-    return mimetype.startsWith('image/');
 }
 
 // 临时存储配置
@@ -48,11 +38,34 @@ const tempStorage = multer.diskStorage({
 const upload = multer({ storage: tempStorage });
 
 /**
+ * 检查路径是否安全（不包含目录遍历尝试）
+ * @param {string} filePath - 要检查的文件路径
+ * @returns {boolean} - 路径是否安全
+ */
+function isPathSafe(filePath) {
+    // 规范化路径（解析 . 和 .. 引用）
+    const normalizedPath = path.normalize(filePath);
+    
+    // 检查是否包含 .. 序列（可能是目录遍历尝试）
+    if (normalizedPath.includes('..')) {
+        return false;
+    }
+    
+    // 确保最终路径仍在上传目录内
+    const fullPath = path.join(config.uploadPath, normalizedPath);
+    const relativePath = path.relative(config.uploadPath, fullPath);
+    
+    // 如果相对路径以 .. 开头，说明路径超出了上传目录
+    return !relativePath.startsWith('..');
+}
+
+/**
  * 将临时文件移动到最终位置
  * @param {object} file - 上传的文件对象
+ * @param {string} [customPath] - 自定义存储路径
  * @returns {Promise<object>} - 包含最终文件信息的对象
  */
-async function moveToFinalLocation(file) {
+async function moveToFinalLocation(file, customPath) {
     try {
         const tempPath = file.path;
         const fileBuffer = fs.readFileSync(tempPath);
@@ -60,23 +73,26 @@ async function moveToFinalLocation(file) {
         
         // 计算SHA256
         const sha256 = calculateSHA256(fileBuffer);
-        const finalFilename = `${sha256}${ext}`;
         
         let finalPath, relativePath;
         
-        if (isImage(file.mimetype)) {
-            // 计算图片的phash
-            const imageHash = await phash(fileBuffer);
-            const phashDir = `p:${binaryStringToHex(imageHash)}`;
+        if (customPath) {
+            // 安全检查
+            if (!isPathSafe(customPath)) {
+                throw new Error('不安全的文件路径');
+            }
             
-            // 创建目标目录
-            const targetDir = path.join(config.uploadPath, phashDir);
+            // 使用自定义路径
+            const normalizedPath = path.normalize(customPath).replace(/^\/+/, ''); // 移除开头的斜杠
+            const dirPath = path.dirname(normalizedPath);
+            const targetDir = path.join(config.uploadPath, dirPath);
             fs.ensureDirSync(targetDir);
             
-            finalPath = path.join(targetDir, finalFilename);
-            relativePath = `${phashDir}/${finalFilename}`;
+            finalPath = path.join(config.uploadPath, normalizedPath);
+            relativePath = normalizedPath;
         } else {
-            // 非图片文件直接存储在根目录
+            // 默认使用sha256作为文件名
+            const finalFilename = `${sha256}${ext}`;
             finalPath = path.join(config.uploadPath, finalFilename);
             relativePath = finalFilename;
         }
@@ -93,9 +109,9 @@ async function moveToFinalLocation(file) {
         // 返回更新后的文件信息
         return {
             ...file,
-            filename: finalFilename,
+            filename: path.basename(finalPath),
             path: finalPath,
-            relativePath: relativePath
+            relativePath
         };
     } catch (error) {
         console.error('移动文件失败:', error);
@@ -115,40 +131,35 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: '没有文件被上传' });
         }
         
+        // 获取自定义路径参数
+        const customPath = req.body.path || null;
+        
         // 移动到最终位置
-        const finalFile = await moveToFinalLocation(req.file);
+        const finalFile = await moveToFinalLocation(req.file, customPath);
         
         // 返回文件信息
         res.status(200).json({
-            message: '文件上传成功',
             file: {
                 filename: finalFile.filename,
-                originalname: finalFile.originalname,
-                mimetype: finalFile.mimetype,
+                originalName: finalFile.originalname,
+                mimeType: finalFile.mimetype,
                 size: finalFile.size,
-                path: finalFile.relativePath
+                path: finalFile.relativePath,
+                url: `${config.srcBaseUrl}${/^\//.test(finalFile.relativePath) ? '' : '/'}${finalFile.relativePath}`,
             }
         });
     } catch (error) {
         console.error('文件上传出错:', error);
+        
+        // 检查是否是路径安全性错误
+        if (error.message) {
+            return res.status(400).json({ 
+                error: error.message,
+            });
+        }
+        
         res.status(500).json({ error: '文件上传失败' });
     }
 });
-
-// 清理临时文件目录
-const cleanupTempDir = () => {
-    const tempDir = path.join(config.uploadPath, 'temp');
-    if (fs.existsSync(tempDir)) {
-        try {
-            fs.emptyDirSync(tempDir);
-            console.log('临时文件目录已清理');
-        } catch (error) {
-            console.error('清理临时文件目录失败:', error);
-        }
-    }
-};
-
-// 每小时清理一次临时文件
-setInterval(cleanupTempDir, 3600000);
 
 export default router;

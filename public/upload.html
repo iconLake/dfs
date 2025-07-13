@@ -73,6 +73,16 @@
         <button class="upload-btn" id="upload-btn">选择文件</button>
         <p>或者拖放文件到此处</p>
         <div id="file-info"></div>
+        <div style="margin-top: 15px; text-align: left;">
+            <label for="custom-path">自定义存储路径 (可选):</label>
+            <input type="text" id="custom-path" placeholder="例如: folder/subfolder/filename.ext" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <small style="color: #666; display: block; margin-top: 5px;">
+                如不指定，文件将以SHA256哈希值作为文件名存储。<br>
+                指定路径时请包含文件名和扩展名。<br>
+                <span style="color: #e74c3c;">安全限制：</span> 路径只能在上传目录内，不能包含 ".." 或绝对路径。<br>
+                有效示例: "images/avatar.jpg", "docs/2023/report.pdf"
+            </small>
+        </div>
     </div>
 
     <progress id="progress" value="0" max="100"></progress>
@@ -158,6 +168,12 @@
 
             const formData = new FormData();
             formData.append('file', file);
+            
+            // 获取自定义路径（如果有）
+            const customPath = document.getElementById('custom-path').value.trim();
+            if (customPath) {
+                formData.append('path', customPath);
+            }
 
             progressBar.style.display = 'block';
             progressBar.value = 0;
@@ -180,9 +196,11 @@
                     const response = JSON.parse(xhr.responseText);
                     showResult('success', `文件上传成功！<br>
                         <strong>文件名:</strong> ${response.file.filename}<br>
-                        <strong>原始名:</strong> ${response.file.originalname}<br>
+                        <strong>原始名:</strong> ${response.file.originalName}<br>
+                        <strong>类型:</strong> ${response.file.mimeType}<br>
                         <strong>大小:</strong> ${formatFileSize(response.file.size)}<br>
-                        <strong>访问链接:</strong> <a href="/src/${response.file.path}" target="_blank">点击查看</a>`);
+                        <strong>路径:</strong> ${response.file.path}<br>
+                        <strong>访问链接:</strong> <a href="${response.file.url}" target="_blank">${response.file.url}</a>`);
                 } else {
                     const error = JSON.parse(xhr.responseText);
                     showResult('error', `上传失败: ${error.error || '未知错误'}`);
