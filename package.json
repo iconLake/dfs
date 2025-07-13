@@ -1,22 +1,33 @@
 {
   "name": "dfs",
   "version": "1.0.0",
-  "description": "Decentralized file system",
-  "main": "index.js",
+  "description": "分布式文件服务系统",
+  "main": "app.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "pm2 reload ecosystem.config.cjs --env development && pm2 logs dfs",
-    "pro": "pm2 reload ecosystem.config.cjs --env production"
+    "start": "node app.js",
+    "dev": "pm2 start ecosystem.config.cjs --watch",
+    "pro": "pm2 start ecosystem.config.cjs --env production",
+    "stop": "pm2 stop ecosystem.config.cjs",
+    "restart": "pm2 restart ecosystem.config.cjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "iconLake",
-  "license": "AGPLv3",
-  "packageManager": "pnpm@9.15.4",
+  "keywords": [
+    "dfs",
+    "file",
+    "upload",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "express": "^5.1.0"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs-extra": "^11.1.1",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "pm2": "^6.0.5"
-  }
+    "pm2": "^5.4.3"
+  },
+  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
 }
