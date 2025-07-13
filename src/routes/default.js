@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 默认路由 - 返回默认图片
-router.get('*', async (req, res) => {
+router.get('*splat', async (req, res) => {
     try {
         const defaultImagePath = path.join(__dirname, '../../public/imgs/default.webp');
         res.sendFile(defaultImagePath, {
