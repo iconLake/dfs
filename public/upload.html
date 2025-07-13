@@ -195,12 +195,12 @@
                 if (xhr.status === 200) {
                     const response = JSON.parse(xhr.responseText);
                     showResult('success', `文件上传成功！<br>
-                        <strong>文件名:</strong> ${response.file.filename}<br>
-                        <strong>原始名:</strong> ${response.file.originalName}<br>
-                        <strong>类型:</strong> ${response.file.mimeType}<br>
-                        <strong>大小:</strong> ${formatFileSize(response.file.size)}<br>
-                        <strong>路径:</strong> ${response.file.path}<br>
-                        <strong>访问链接:</strong> <a href="${response.file.url}" target="_blank">${response.file.url}</a>`);
+                        <strong>文件名:</strong> ${response.filename}<br>
+                        <strong>原始名:</strong> ${response.originalName}<br>
+                        <strong>类型:</strong> ${response.mimeType}<br>
+                        <strong>大小:</strong> ${formatFileSize(response.size)}<br>
+                        <strong>路径:</strong> ${response.key}<br>
+                        <strong>访问链接:</strong> <a href="${response.url}" target="_blank">${response.url}</a>`);
                 } else {
                     const error = JSON.parse(xhr.responseText);
                     showResult('error', `上传失败: ${error.error || '未知错误'}`);

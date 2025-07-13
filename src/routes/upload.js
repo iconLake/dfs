@@ -139,14 +139,12 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
         
         // 返回文件信息
         res.status(200).json({
-            file: {
-                filename: finalFile.filename,
-                originalName: finalFile.originalname,
-                mimeType: finalFile.mimetype,
-                size: finalFile.size,
-                path: finalFile.relativePath,
-                url: `${config.srcBaseUrl}${/^\//.test(finalFile.relativePath) ? '' : '/'}${finalFile.relativePath}`,
-            }
+            filename: finalFile.filename,
+            originalName: finalFile.originalname,
+            mimeType: finalFile.mimetype,
+            size: finalFile.size,
+            key: finalFile.relativePath,
+            url: `${config.srcBaseUrl}${/^\//.test(finalFile.relativePath) ? '' : '/'}${finalFile.relativePath}`,
         });
     } catch (error) {
         console.error('文件上传出错:', error);
