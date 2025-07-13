@@ -3,7 +3,7 @@
  */
 export default {
     // 认证令牌，用于API鉴权
-    token: 'dfs-auth-token-2023',
+    token: 'dfs-auth-token-2025',
     
     // 上传文件存储路径
     uploadPath: 'public/src',
@@ -18,7 +18,9 @@ export default {
     cors: {
         // 允许的域名列表
         allowedOrigins: [
-            'https://iconlake.com'
+            'https://iconlake.com',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
         ]
     }
 };

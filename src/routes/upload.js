@@ -3,9 +3,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs-extra';
 import crypto from 'crypto';
-import { phash } from 'sharp-phash';
+import phash from 'sharp-phash';
 import config from '../../config.js';
 import { authenticate } from '../middlewares/index.js';
+import { binaryStringToHex, getProjectRoot } from '../utils/index.js';
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ async function moveToFinalLocation(file) {
         if (isImage(file.mimetype)) {
             // 计算图片的phash
             const imageHash = await phash(fileBuffer);
-            const phashDir = imageHash.substring(0, 8); // 使用phash前8位作为目录名
+            const phashDir = `p:${binaryStringToHex(imageHash)}`;
             
             // 创建目标目录
             const targetDir = path.join(config.uploadPath, phashDir);
@@ -101,6 +102,11 @@ async function moveToFinalLocation(file) {
         throw error;
     }
 }
+
+// 上传页面
+router.get('/', (req, res) => {
+    res.sendFile(path.join(getProjectRoot(), 'public/upload.html'));
+});
 
 // 文件上传接口
 router.post('/', authenticate, upload.single('file'), async (req, res) => {
