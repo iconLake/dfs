@@ -74,6 +74,18 @@
         <p>或者拖放文件到此处</p>
         <div id="file-info"></div>
         <div style="margin-top: 15px; text-align: left;">
+            <label for="auth-token">认证Token (必填):</label>
+            <input type="text" id="auth-token" placeholder="请输入认证Token" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="margin-top: 5px;">
+                <input type="checkbox" id="remember-token" style="vertical-align: middle;">
+                <label for="remember-token" style="vertical-align: middle; font-size: 14px;">记住我的Token</label>
+            </div>
+            <small style="color: #666; display: block; margin-top: 5px;">
+                请输入有效的认证Token，否则上传将被拒绝。
+            </small>
+        </div>
+        
+        <div style="margin-top: 15px; text-align: left;">
             <label for="custom-path">自定义存储路径 (可选):</label>
             <input type="text" id="custom-path" placeholder="例如: folder/subfolder/filename.ext" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
             <small style="color: #666; display: block; margin-top: 5px;">
@@ -90,24 +102,46 @@
     <div id="result"></div>
 
     <script>
+    (function() {
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
         const dropArea = document.getElementById('drop-area');
         const fileInfo = document.getElementById('file-info');
         const resultDiv = document.getElementById('result');
         const progressBar = document.getElementById('progress');
+        const authTokenInput = document.getElementById('auth-token');
+        const rememberTokenCheckbox = document.getElementById('remember-token');
+        
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('auth-token');
+            if (savedToken) {
+                authTokenInput.value = savedToken;
+                rememberTokenCheckbox.checked = true;
+            }
+            authTokenInput.focus();
+        });
+        
+        function saveToken() {
+            const token = authTokenInput.value.trim();
+            if (token && rememberTokenCheckbox.checked) {
+                localStorage.setItem('auth-token', token);
+            } else {
+                localStorage.removeItem('auth-token');
+            }
+        }
 
-        // 点击按钮触发文件选择
         uploadBtn.addEventListener('click', () => fileInput.click());
 
-        // 文件选择变化时显示文件信息
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) {
                 showFileInfo(e.target.files[0]);
             }
         });
+            
+        rememberTokenCheckbox.addEventListener('change', function() {
+            saveToken();
+        });
 
-        // 拖放功能
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
         });
@@ -133,7 +167,6 @@
             dropArea.classList.remove('active');
         }
 
-        // 处理拖放的文件
         dropArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const file = dt.files[0];
@@ -141,7 +174,6 @@
             showFileInfo(file);
         });
 
-        // 显示文件信息
         function showFileInfo(file) {
             fileInfo.innerHTML = `
                 <strong>已选择文件:</strong> ${file.name}<br>
@@ -150,7 +182,6 @@
             `;
         }
 
-        // 格式化文件大小
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -159,7 +190,6 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // 上传文件
         fileInput.addEventListener('change', uploadFile);
 
         function uploadFile() {
@@ -169,7 +199,6 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // 获取自定义路径（如果有）
             const customPath = document.getElementById('custom-path').value.trim();
             if (customPath) {
                 formData.append('key', customPath);
@@ -178,9 +207,18 @@
             progressBar.style.display = 'block';
             progressBar.value = 0;
 
+            const token = document.getElementById('auth-token').value.trim();
+            if (!token) {
+                showResult('error', '请输入认证Token');
+                progressBar.style.display = 'none';
+                return;
+            }
+            
+            saveToken();
+            
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload', true);
-            xhr.setRequestHeader('Authorization', 'Bearer dfs-auth-token-2025');
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
@@ -220,6 +258,7 @@
             resultDiv.innerHTML = message;
             resultDiv.style.display = 'block';
         }
+    })();
     </script>
 </body>
 </html>
