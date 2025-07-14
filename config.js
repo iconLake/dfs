@@ -1,3 +1,18 @@
+const allowedOrigins = [
+    'https://iconlake.com',
+];
+
+if (process.env.NODE_ENV !== 'production') {
+    allowedOrigins.push(...[
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:8080',
+        'http://127.0.0.1:8080',
+        'http://localhost:8088',
+        'http://127.0.0.1:8088',
+    ]);
+}
+
 /**
  * 系统配置文件
  */
@@ -18,10 +33,6 @@ export default {
     // CORS配置
     cors: {
         // 允许的域名列表
-        allowedOrigins: [
-            'https://iconlake.com',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000'
-        ]
+        allowedOrigins,
     },
 };

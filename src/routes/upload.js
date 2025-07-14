@@ -132,7 +132,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
         }
         
         // 获取自定义路径参数
-        const customPath = req.body.path || null;
+        const customPath = req.body.key || null;
         
         // 移动到最终位置
         const finalFile = await moveToFinalLocation(req.file, customPath);

@@ -9,14 +9,14 @@ const app = express();
 
 // CORS 配置
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || config.cors.allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('不允许的跨域请求'));
-    }
-  },
-  optionsSuccessStatus: 200
+    origin: function (origin, callback) {
+        if (!origin || config.cors.allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, false);
+        }
+    },
+    optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
@@ -30,7 +30,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 app.listen(config.port, () => {
-    console.log(`DFS 服务器运行在 http://127.0.0.1:${config.port}`);
+    console.log(`DFS is running at http://127.0.0.1:${config.port}`);
 });
 
 export default app;
