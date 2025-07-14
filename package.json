@@ -19,7 +19,7 @@
     "express"
   ],
   "author": "iconLake",
-  "license": "AGPLv3",
+  "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
