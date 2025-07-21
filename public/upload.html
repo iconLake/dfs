@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .upload-container {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .upload-container.active {
+            border-color: #4CAF50;
+            background-color: #f8f8f8;
+        }
+        #file-input {
+            display: none;
+        }
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+        #file-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #progress {
+            margin-top: 10px;
+            width: 100%;
+            height: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>文件上传</h1>
+    
+    <div class="upload-container" id="drop-area">
+        <input type="file" id="file-input">
+        <button class="upload-btn" id="upload-btn">选择文件</button>
+        <p>或者拖放文件到此处</p>
+        <div id="file-info"></div>
+        <div style="margin-top: 15px; text-align: left;">
+            <label for="auth-token">认证Token (必填):</label>
+            <input type="text" id="auth-token" placeholder="请输入认证Token" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="margin-top: 5px;">
+                <input type="checkbox" id="remember-token" style="vertical-align: middle;">
+                <label for="remember-token" style="vertical-align: middle; font-size: 14px;">记住我的Token</label>
+            </div>
+            <small style="color: #666; display: block; margin-top: 5px;">
+                请输入有效的认证Token，否则上传将被拒绝。
+            </small>
+        </div>
+        
+        <div style="margin-top: 15px; text-align: left;">
+            <label for="custom-path">自定义存储路径 (可选):</label>
+            <input type="text" id="custom-path" placeholder="例如: folder/subfolder/filename.ext" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <small style="color: #666; display: block; margin-top: 5px;">
+                如不指定，文件将以SHA256哈希值作为文件名存储。<br>
+                指定路径时请包含文件名和扩展名。<br>
+                <span style="color: #e74c3c;">安全限制：</span> 路径只能在上传目录内，不能包含 ".." 或绝对路径。<br>
+                有效示例: "images/avatar.jpg", "docs/2023/report.pdf"
+            </small>
+        </div>
+    </div>
+
+    <progress id="progress" value="0" max="100"></progress>
+    
+    <div id="result"></div>
+
+    <script>
+    (function() {
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const dropArea = document.getElementById('drop-area');
+        const fileInfo = document.getElementById('file-info');
+        const resultDiv = document.getElementById('result');
+        const progressBar = document.getElementById('progress');
+        const authTokenInput = document.getElementById('auth-token');
+        const rememberTokenCheckbox = document.getElementById('remember-token');
+        
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('auth-token');
+            if (savedToken) {
+                authTokenInput.value = savedToken;
+                rememberTokenCheckbox.checked = true;
+            }
+            authTokenInput.focus();
+        });
+        
+        function saveToken() {
+            const token = authTokenInput.value.trim();
+            if (token && rememberTokenCheckbox.checked) {
+                localStorage.setItem('auth-token', token);
+            } else {
+                localStorage.removeItem('auth-token');
+            }
+        }
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                showFileInfo(e.target.files[0]);
+            }
+        });
+            
+        rememberTokenCheckbox.addEventListener('change', function() {
+            saveToken();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('active');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('active');
+        }
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            fileInput.files = dt.files;
+            showFileInfo(file);
+        });
+
+        function showFileInfo(file) {
+            fileInfo.innerHTML = `
+                <strong>已选择文件:</strong> ${file.name}<br>
+                <strong>类型:</strong> ${file.type || '未知'}<br>
+                <strong>大小:</strong> ${formatFileSize(file.size)}
+            `;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        fileInput.addEventListener('change', uploadFile);
+
+        function uploadFile() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const customPath = document.getElementById('custom-path').value.trim();
+            if (customPath) {
+                formData.append('key', customPath);
+            }
+
+            progressBar.style.display = 'block';
+            progressBar.value = 0;
+
+            const token = document.getElementById('auth-token').value.trim();
+            if (!token) {
+                showResult('error', '请输入认证Token');
+                progressBar.style.display = 'none';
+                return;
+            }
+            
+            saveToken();
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.value = percentComplete;
+                }
+            };
+
+            xhr.onload = function() {
+                progressBar.style.display = 'none';
+                
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    showResult('success', `文件上传成功！<br>
+                        <strong>文件名:</strong> ${response.filename}<br>
+                        <strong>原始名:</strong> ${response.originalName}<br>
+                        <strong>类型:</strong> ${response.mimeType}<br>
+                        <strong>大小:</strong> ${formatFileSize(response.size)}<br>
+                        <strong>路径:</strong> ${response.key}<br>
+                        <strong>访问链接:</strong> <a href="${response.url}" target="_blank">${response.url}</a>`);
+                } else {
+                    const error = JSON.parse(xhr.responseText);
+                    showResult('error', `上传失败: ${error.error || '未知错误'}`);
+                }
+            };
+
+            xhr.onerror = function() {
+                progressBar.style.display = 'none';
+                showResult('error', '上传过程中发生错误');
+            };
+
+            xhr.send(formData);
+        }
+
+        function showResult(type, message) {
+            resultDiv.className = type;
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+    })();
+    </script>
+</body>
+</html>
